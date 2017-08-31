@@ -10,9 +10,10 @@ from sklearn.preprocessing import LabelEncoder
 
 # Hyperparameters
 factors = 20
-regularization = 1
+regularization = 0.1
+threshold = 10
 n_estimators = 100
-criterion = "entropy"
+criterion = "gini"
 min_samples_leaf = 2
 max_features = 0.2
 
@@ -30,10 +31,12 @@ print("Code done")
 
 train, test = train_test_split(data)
 
-train_buy = train[train[0] == 1]
-V = numpy.ones(len(train_buy))
-I = train_buy["item_code"]
-J = train_buy["user_code"]
+train_buy = train.loc[train[0] == 1, ["item_code", "user_code"]]
+train_buy_count = train_buy.groupby(["item_code", "user_code"]).aggregate(len)
+V = train_buy_count.values.astype(float)
+V = numpy.where(V >= threshold, threshold, V)
+I = train_buy_count.index.get_level_values("item_code").values
+J = train_buy_count.index.get_level_values("user_code").values
 train_matrix = scipy.sparse.coo_matrix((V, (I, J))).tocsr()
 
 ALS = implicit.als.AlternatingLeastSquares
